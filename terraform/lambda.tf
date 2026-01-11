@@ -17,6 +17,7 @@ resource "aws_lambda_function" "mempool_lambda" {
     variables = {
       ENVIRONMENT = var.environment
       PROJECT     = var.project_name
+      S3_BUCKET   = aws_s3_bucket.mempool_data_bucket.bucket
     }
   }
 

@@ -1,6 +1,9 @@
 resource "random_string" "bucket_suffix" {
   length  = 8
   special = false
+  upper   = false
+  lower   = true
+  numeric = true
 }
 
 resource "aws_s3_bucket" "mempool_data_bucket" {
