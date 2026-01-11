@@ -1,11 +1,7 @@
 resource "aws_cloudwatch_event_rule" "mempool_eventbridge" {
   name        = "${var.project_name}-event-rule"
-  description = "EventBridge rule for Mempool data events"
-
-  event_pattern = jsonencode({
-    source      = ["mempool.space"]
-    detail-type = ["transaction"]
-  })
+  description = "EventBridge rule for polling Mempool REST API"
+  schedule_expression = "rate(1 minute)"
 
   tags = {
     Environment = var.environment

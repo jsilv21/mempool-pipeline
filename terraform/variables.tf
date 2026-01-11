@@ -19,17 +19,21 @@ variable "project_name" {
 variable "ec2_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 }
 
-variable "ec2_ami" {
-  description = "EC2 AMI ID"
-  type        = string
-  default     = "ami-0c55b159cbfafe1f0" # need to update with proper AMI - TBD
+data "aws_ami" "amazon_linux_2023" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023*-x86_64"]
+  }
 }
 
 variable "lambda_runtime" {
   description = "Lambda runtime"
   type        = string
-  default     = "nodejs14.x"
+  default     = "python3.11"
 }
