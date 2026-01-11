@@ -18,7 +18,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(message)s")
 
 MEMPOOL_WS_URL = os.getenv("MEMPOOL_WS_URL", "wss://mempool.space/api/v1/ws")
-MEMPOOL_CHANNELS = os.getenv("MEMPOOL_CHANNELS", "mempool-blocks").split(",")
+MEMPOOL_TRACK_BLOCK = int(os.getenv("MEMPOOL_TRACK_BLOCK", "0"))
 FIREHOSE_STREAM_NAME = os.getenv("FIREHOSE_STREAM_NAME", "")
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "200"))
@@ -58,7 +58,7 @@ def flush(force=False):
 
 def on_open(ws):
     logging.info("Connected to %s", MEMPOOL_WS_URL)
-    ws.send(json.dumps({"action": "want", "data": MEMPOOL_CHANNELS}))
+    ws.send(json.dumps({"track-mempool-block": MEMPOOL_TRACK_BLOCK}))
 
 
 def on_message(ws, message):
