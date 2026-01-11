@@ -23,11 +23,13 @@
 - AWS Infrastructure
   - Managed via Terraform. S3 must persist on destroy.
   - Event Streaming:
-    - Ec2, firehose
+    - Ec2: python connection to mempool websocket to receive JSON data to firehose
+    - Firehose pushes to dashboard (realtime) and s3 (historical)
   - Batched Data:
-    - lambda, eventbridge
-  - storage via S3
-  - IAM for all
+    - EventBridge triggers lambda function
+    - Lambda function polls mempool REST for block data
+  - S3 stores all historical data, version controlled
+  - IAM manages access amongst AWS resourecs
 - Data Warehousing
   - Snowflake DW
   - dbt for transformations
