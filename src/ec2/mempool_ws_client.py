@@ -42,7 +42,7 @@ def flush(force=False):
     if not force and len(buffer) < BATCH_SIZE and (time.time() - last_flush) < FLUSH_INTERVAL_SEC:
         return
 
-    records = [{"Data": json.dumps(item).encode("utf-8")} for item in buffer]
+    records = [{"Data": (json.dumps(item) + "\n").encode("utf-8")} for item in buffer]
     buffer = []
     last_flush = time.time()
 
