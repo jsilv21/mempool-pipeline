@@ -8,12 +8,7 @@ resource "random_string" "bucket_suffix" {
 
 resource "aws_s3_bucket" "mempool_data_bucket" {
   bucket = "${var.project_name}-data-bucket-${random_string.bucket_suffix.result}"
-
-  lifecycle {
-    prevent_destroy = true
-  }
-
-  tags = {
+tags = {
     Name        = "${var.project_name}-data-bucket"
     Environment = var.environment
   }
@@ -26,3 +21,5 @@ resource "aws_s3_bucket_versioning" "mempool_data_bucket_versioning" {
     status = "Enabled"
   }
 }
+
+
