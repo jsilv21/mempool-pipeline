@@ -35,35 +35,4 @@
 
 ## Rough Architecture Diagram
 
-```mermaid
-flowchart LR
-%% Data Sources
-MempoolAPI[Mempool API] -->|REST Pulls| Lambda[Lambda]
-MempoolAPI -->|Streaming| EC2[EC2]
-
-    %% Streaming pipeline
-    EC2 -->|Websocket Stream| Firehose[Firehose]
-    Firehose -->|Realtime mempool chgs| Frontend[Front End Dashboard]
-
-    %% Batched pipeline
-    Lambda --> EventBridge[EventBridge]
-    EventBridge --> S3Landing[S3 - Landing]
-
-    %% Snowflake Layers
-    S3Landing --> SnowflakeBronze[Snowflake Bronze]
-    SnowflakeBronze --> SnowflakeSilver[Snowflake Silver]
-    SnowflakeSilver --> SnowflakeGold[Snowflake Gold]
-
-    %% Analytics
-    SnowflakeGold -->|Historical Analytics| Frontend
-
-    %% Transformations
-    SnowflakeBronze -->|dbt transformations| DBT[dbt]
-    SnowflakeSilver -->|dbt transformations| DBT
-    SnowflakeGold -->|dbt transformations| DBT
-
-    %% Terraform and GitHub Actions
-    Terraform --> S3Landing
-    GH[GitHub Actions] --> Terraform
-    GH --> C[EC2 script updates?]
-```
+![](mempool-project.drawio.png)
