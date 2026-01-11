@@ -1,0 +1,10 @@
+# Terraform
+.terraform/
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Build artifacts
+build/*.zip
