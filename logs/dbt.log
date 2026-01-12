@@ -1,0 +1,48 @@
+==================== 2026-01-12T23:27:56.817642Z | 019bb489-9f8d-7a33-8d70-5743d47213a8 ====================
+23:27:56.817813 [info ]: Installing dbt project and profile setup
+23:27:56.827361 [error]: dbt1007: Could not find profile named 'mempool-project'
+23:27:57.291722 [info ]: 
+==================== Execution Summary =====================
+Finished 'init' with 1 error [474ms]
+==================== 2026-01-12T23:28:11.216788Z | 019bb489-d7ce-7370-9406-1ce18e6fb794 ====================
+23:28:11.216924 [info ]: Installing dbt project and profile setup
+23:28:11.249684 [info ]: Info Created .vscode/extensions.json with dbt extension recommendation
+23:28:11.250206 [info ]: Success Project created successfully!
+23:28:11.250569 [info ]: Info Project name: jaffle_shop
+23:28:11.250810 [info ]: Info Project directory: jaffle_shop
+23:28:11.251082 [info ]: Info Setting up your profile...
+23:28:11.251993 [info ]: Loading ~/.dbt/profiles.yml
+23:28:11.252906 [info ]: Info Creating new profile...
+23:28:29.377952 [info ]: Found dbt_cloud.yml configuration
+23:28:29.378672 [info ]: Found active project: Partner Connect Trial (ID: 70471823521060)
+23:28:40.117436 [warn ]: dbt1001: Failed to fetch cloud config: Failed to fetch user credentials: error in response: status code 401 Unauthorized
+23:28:40.117478 [info ]: No cloud config found for this adapter/project
+23:29:23.497202 [info ]: Success Profile written to C:\Users\Iceeh\.dbt\profiles.yml
+23:29:23.498173 [info ]: Validating profile inputs, adapters, and connection
+
+23:29:23.498606 [info ]: dbt-fusion 2.0.0-preview.92
+23:29:23.504329 [info ]: Started loading project
+23:29:23.523366 [info ]: Loading ~/.dbt/profiles.yml
+23:29:23.541959 [info ]: Finished loading project [  0.04s]
+23:29:23.544097 [info ]: Started debugging
+23:29:23.544651 [info ]: Debugging profile: dev
+23:29:23.545041 [info ]: Debugging dbt version: 2.0.0-preview.92
+23:29:23.545488 [info ]: Debugging platform: windows x86_64 (windows)
+23:29:23.546392 [info ]: Debugging adapter type: snowflake (remote)
+23:29:23.587359 [info ]: Debugging dependencies:
+  git: OK
+23:29:23.590909 [info ]: Debugging connection:
+  "account": "RAYNUYA-OEC93465",
+  "user": "DBT_LOCAL_USER",
+  "database": "MEMPOOL",
+  "warehouse": "TRANSFORMING",
+  "schema": "DBT_JSILV",
+  "role": "DBT_DEVELOPER_ROLE"
+23:29:24.553752 [debug]: Query executed on node unknown:
+select 1 as id
+23:29:24.629701 [info ]: Debugging connection test: OK
+23:29:24.631769 [info ]: Debugged All checks passed!
+23:29:24.633190 [info ]: Finished debugging [  1.09s]
+23:29:25.153831 [info ]: 
+==================== Execution Summary =====================
+Finished 'init' with 1 warning for target 'dev' [1m 14s]
