@@ -18,14 +18,24 @@ output "s3_bucket_arn" {
   value       = aws_s3_bucket.mempool_data_bucket.arn
 }
 
-output "firehose_delivery_stream_name" {
-  description = "Kinesis Firehose delivery stream name"
-  value       = aws_kinesis_firehose_delivery_stream.mempool_firehose.name
+output "firehose_stream_delivery_name" {
+  description = "Kinesis Firehose delivery stream name (mempool stream)"
+  value       = aws_kinesis_firehose_delivery_stream.mempool_firehose_stream.name
 }
 
-output "firehose_delivery_stream_arn" {
-  description = "Kinesis Firehose delivery stream ARN"
-  value       = aws_kinesis_firehose_delivery_stream.mempool_firehose.arn
+output "firehose_stream_delivery_arn" {
+  description = "Kinesis Firehose delivery stream ARN (mempool stream)"
+  value       = aws_kinesis_firehose_delivery_stream.mempool_firehose_stream.arn
+}
+
+output "firehose_conversions_delivery_name" {
+  description = "Kinesis Firehose delivery stream name (conversions)"
+  value       = aws_kinesis_firehose_delivery_stream.mempool_firehose_conversions.name
+}
+
+output "firehose_conversions_delivery_arn" {
+  description = "Kinesis Firehose delivery stream ARN (conversions)"
+  value       = aws_kinesis_firehose_delivery_stream.mempool_firehose_conversions.arn
 }
 
 output "lambda_function_name" {

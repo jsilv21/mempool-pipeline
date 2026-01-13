@@ -128,7 +128,10 @@ resource "aws_iam_role_policy" "ec2_firehose_write" {
           "firehose:PutRecord",
           "firehose:PutRecordBatch"
         ]
-        Resource = aws_kinesis_firehose_delivery_stream.mempool_firehose.arn
+        Resource = [
+          aws_kinesis_firehose_delivery_stream.mempool_firehose_stream.arn,
+          aws_kinesis_firehose_delivery_stream.mempool_firehose_conversions.arn
+        ]
       }
     ]
   })

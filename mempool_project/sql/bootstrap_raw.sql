@@ -24,6 +24,20 @@ create or replace table RAW.MEMPOOL_STREAM_EVENTS (
   S3_KEY string
 );
 
+create or replace table RAW.MEMPOOL_CONVERSIONS (
+  INGESTED_AT timestamp_ntz default current_timestamp,
+  AUD number,
+  CAD number,
+  CHF number,
+  EUR number,
+  GBP number,
+  JPY number,
+  USD number,
+  CONVERSION_TIME number,
+  RAW variant,
+  S3_KEY string
+);
+
 create or replace table RAW.BLOCK_METADATA (
   INGESTED_AT timestamp_ntz default current_timestamp,
   ID string,
@@ -60,12 +74,34 @@ as
 copy into RAW.MEMPOOL_STREAM_EVENTS (INDEX_POS, SEQUENCE, DELTA, RAW, S3_KEY)
 from (
   select
-    $1:"projected-block-transactions":"index"::number as index_pos,
-    $1:"projected-block-transactions":"sequence"::number as sequence,
-    $1:"projected-block-transactions":"delta" as delta,
+    $1:payload:"projected-block-transactions":"index"::number as index_pos,
+    $1:payload:"projected-block-transactions":"sequence"::number as sequence,
+    $1:payload:"projected-block-transactions":"delta" as delta,
     $1 as raw,
     metadata$filename as s3_key
-  from @RAW.MEMPOOL_STAGE/mempool-data/
+  from @RAW.MEMPOOL_STAGE/mempool-data/stream/
+)
+file_format = (format_name = 'RAW.NDJSON_JSON');
+
+create or replace pipe RAW.PIPE_MEMPOOL_CONVERSIONS
+  auto_ingest = true
+as
+copy into RAW.MEMPOOL_CONVERSIONS (
+  AUD, CAD, CHF, EUR, GBP, JPY, USD, CONVERSION_TIME, RAW, S3_KEY
+)
+from (
+  select
+    $1:payload:conversions:"AUD"::number as aud,
+    $1:payload:conversions:"CAD"::number as cad,
+    $1:payload:conversions:"CHF"::number as chf,
+    $1:payload:conversions:"EUR"::number as eur,
+    $1:payload:conversions:"GBP"::number as gbp,
+    $1:payload:conversions:"JPY"::number as jpy,
+    $1:payload:conversions:"USD"::number as usd,
+    $1:payload:conversions:"time"::number as conversion_time,
+    $1 as raw,
+    metadata$filename as s3_key
+  from @RAW.MEMPOOL_STAGE/mempool-data/conversions/
 )
 file_format = (format_name = 'RAW.NDJSON_JSON');
 

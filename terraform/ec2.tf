@@ -79,7 +79,8 @@ resource "aws_instance" "mempool_ec2" {
 
               mkdir -p /etc/mempool
               cat > /etc/mempool/mempool.env <<'ENV'
-              FIREHOSE_STREAM_NAME=${aws_kinesis_firehose_delivery_stream.mempool_firehose.name}
+              FIREHOSE_STREAM_NAME=${aws_kinesis_firehose_delivery_stream.mempool_firehose_stream.name}
+              FIREHOSE_CONVERSIONS_STREAM_NAME=${aws_kinesis_firehose_delivery_stream.mempool_firehose_conversions.name}
               LOG_LEVEL=INFO
               AWS_REGION=${var.aws_region}
               AWS_DEFAULT_REGION=${var.aws_region}

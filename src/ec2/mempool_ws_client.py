@@ -21,6 +21,7 @@ logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(message
 MEMPOOL_WS_URL = os.getenv("MEMPOOL_WS_URL", "wss://mempool.space/api/v1/ws")
 MEMPOOL_TRACK_BLOCK = int(os.getenv("MEMPOOL_TRACK_BLOCK", "0"))
 FIREHOSE_STREAM_NAME = os.getenv("FIREHOSE_STREAM_NAME", "")
+FIREHOSE_CONVERSIONS_STREAM_NAME = os.getenv("FIREHOSE_CONVERSIONS_STREAM_NAME", "")
 
 def get_region():
     region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION")
@@ -59,31 +60,44 @@ if not region:
 
 firehose = boto3.client("firehose", region_name=region)
 
-buffer = []
-last_flush = time.time()
+streams = {
+    FIREHOSE_STREAM_NAME: {"buffer": [], "last_flush": time.time()},
+}
+if FIREHOSE_CONVERSIONS_STREAM_NAME:
+    streams[FIREHOSE_CONVERSIONS_STREAM_NAME] = {"buffer": [], "last_flush": time.time()}
+
+logged_missing_conversions_stream = False
 
 
-def flush(force=False):
-    global buffer, last_flush
-
-    if not buffer:
+def flush_stream(stream_name, force=False):
+    entry = streams.get(stream_name)
+    if not entry or not entry["buffer"]:
         return
 
-    if not force and len(buffer) < BATCH_SIZE and (time.time() - last_flush) < FLUSH_INTERVAL_SEC:
+    if (
+        not force
+        and len(entry["buffer"]) < BATCH_SIZE
+        and (time.time() - entry["last_flush"]) < FLUSH_INTERVAL_SEC
+    ):
         return
 
-    records = [{"Data": (json.dumps(item) + "\n").encode("utf-8")} for item in buffer]
-    buffer = []
-    last_flush = time.time()
+    records = [{"Data": (json.dumps(item) + "\n").encode("utf-8")} for item in entry["buffer"]]
+    entry["buffer"] = []
+    entry["last_flush"] = time.time()
 
     response = firehose.put_record_batch(
-        DeliveryStreamName=FIREHOSE_STREAM_NAME,
+        DeliveryStreamName=stream_name,
         Records=records,
     )
 
     failed = response.get("FailedPutCount", 0)
     if failed:
-        logging.warning("Firehose failed to ingest %s records", failed)
+        logging.warning("Firehose failed to ingest %s records into %s", failed, stream_name)
+
+
+def flush_all(force=False):
+    for stream_name in streams:
+        flush_stream(stream_name, force=force)
 
 
 def on_open(ws):
@@ -92,6 +106,8 @@ def on_open(ws):
 
 
 def on_message(ws, message):
+    global logged_missing_conversions_stream
+
     try:
         payload = json.loads(message)
     except json.JSONDecodeError:
@@ -103,8 +119,19 @@ def on_message(ws, message):
         "payload": payload,
     }
 
-    buffer.append(envelope)
-    flush()
+    target_stream = FIREHOSE_STREAM_NAME
+    if isinstance(payload, dict) and "conversions" in payload:
+        if FIREHOSE_CONVERSIONS_STREAM_NAME:
+            target_stream = FIREHOSE_CONVERSIONS_STREAM_NAME
+        else:
+            if not logged_missing_conversions_stream:
+                logging.warning(
+                    "Conversions payload received but FIREHOSE_CONVERSIONS_STREAM_NAME is not set."
+                )
+                logged_missing_conversions_stream = True
+
+    streams[target_stream]["buffer"].append(envelope)
+    flush_stream(target_stream)
 
 
 def on_error(ws, error):
@@ -113,7 +140,7 @@ def on_error(ws, error):
 
 def on_close(ws, status_code, message):
     logging.warning("WebSocket closed: %s %s", status_code, message)
-    flush(force=True)
+    flush_all(force=True)
 
 
 def run():
