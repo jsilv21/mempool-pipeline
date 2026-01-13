@@ -9,6 +9,7 @@ resource "aws_lambda_function" "mempool_lambda" {
   role          = aws_iam_role.lambda_role.arn
   handler       = "handler.handler"
   runtime       = var.lambda_runtime
+  timeout       = 10
 
   filename         = data.archive_file.mempool_lambda_zip.output_path
   source_code_hash = data.archive_file.mempool_lambda_zip.output_base64sha256

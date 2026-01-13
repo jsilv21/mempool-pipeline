@@ -11,3 +11,5 @@ select
   raw,
   s3_key
 from source
+order by ingested_at desc
+limit 5

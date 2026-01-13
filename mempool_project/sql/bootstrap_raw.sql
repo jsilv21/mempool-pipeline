@@ -17,7 +17,7 @@ create schema if not exists RAW;
 
 create or replace table RAW.MEMPOOL_STREAM_EVENTS (
   INGESTED_AT timestamp_ntz default current_timestamp,
-  INDEX number,
+  INDEX_POS number,
   SEQUENCE number,
   DELTA variant,
   RAW variant,
@@ -57,10 +57,10 @@ create or replace stage RAW.MEMPOOL_STAGE
 create or replace pipe RAW.PIPE_MEMPOOL_STREAM
   auto_ingest = true
 as
-copy into RAW.MEMPOOL_STREAM_EVENTS (INDEX, SEQUENCE, DELTA, RAW, S3_KEY)
+copy into RAW.MEMPOOL_STREAM_EVENTS (INDEX_POS, SEQUENCE, DELTA, RAW, S3_KEY)
 from (
   select
-    $1:"projected-block-transactions":"index"::number as index,
+    $1:"projected-block-transactions":"index"::number as index_pos,
     $1:"projected-block-transactions":"sequence"::number as sequence,
     $1:"projected-block-transactions":"delta" as delta,
     $1 as raw,

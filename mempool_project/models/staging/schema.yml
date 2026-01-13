@@ -7,7 +7,7 @@ models:
       - name: sequence
         tests:
           - not_null
-      - name: index
+      - name: index_pos
         tests:
           - not_null
 
