@@ -1,0 +1,48 @@
+// THIS DOCUMENTS DATA FORMATS FROM MEMPOOL API ENDPOINTS
+
+
+// https://mempool.space/api/blocks - list of blocks
+[
+  {
+  "bits": 386001906,
+  "difficulty": 146472570619930.78,
+  "height": 932134,
+  "id": "0000000000000000000000e2486e0b5e11ddbd776c1b05ac0308d38e0ad0d8c7",
+  "mediantime": 1768319550,
+  "merkle_root": "10a1c925ac44095418d847593c6c82f9a106156bc8f5cbf97c93b4fc9bcd0d8d",
+  "nonce": 3034893166,
+  "previousblockhash": "0000000000000000000022b12311e184718b70f436b752c6e78113b46dedef64",
+  "size": 1264573,
+  "timestamp": 1768321785,
+  "tx_count": 2761,
+  "version": 829964288,
+  "weight": 3223531
+  }
+]
+
+// wss://mempool.space/api/v1/ws , { "track-mempool-block": 0 }
+{
+  "projected-block-transactions": {
+    "index": 0,
+    "sequence": 80270,
+    "delta": {
+      "added": [
+        [
+          "172b34fb099d80f61b65d1c107c4f25665c8f50e30c1371b2e6fbced62991d58", //txid
+          2000, // fee in satoshis
+          171.25, //vsize in vbytes
+          5942725, //total transaction output value in satoshis
+          11.68, // feerate in sat/vB
+          1099511631877, //Ancestor Fee/Weight: Likely the cumulative fee of the transaction and its ancestors (unconfirmed parents) used by miners to prioritize the entire "package."
+          1734881537 // unix timestamp
+        ],
+        ...
+      ],
+      "removed": [
+        "956a6eee382214631c3299e0410565e05fbd6328c89fa746efab6371705aca2a",
+        ...
+        ],
+      "changed": []
+    }
+  }
+}
