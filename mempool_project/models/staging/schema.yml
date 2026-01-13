@@ -21,3 +21,13 @@ models:
       - name: height
         tests:
           - not_null
+
+  - name: stg_mempool_stream_conversions
+    description: "Staging view for mempool stream conversions."
+    columns:
+      - name: conversion_time
+        tests:
+          - not_null
+      - name: usd
+        tests:
+          - not_null

@@ -1,8 +1,9 @@
 # Mempool data pipeline project:
 
-- Pulls data from Mempool.space's API & Websockets connection
-- Event Stream: Raw txn deltas from next expected block
-- Batched data: Historical analysis of blockchain
+- Pulls data from Mempool.space's API & WebSockets connection
+- Event stream: transaction deltas for the next expected block
+- Conversions stream: periodic BTC conversion rates
+- Batch data: block metadata snapshots
 
 ## Requirements
 
@@ -10,6 +11,7 @@
 
 - Able to visualize 'next block' changes in realtime
 - Visualize historical block data statistics
+- Track periodic BTC conversion rates
 
 ### Architecture
 
@@ -23,15 +25,17 @@
 - AWS Infrastructure
   - Managed via Terraform. S3 must persist on destroy.
   - Event Streaming:
-    - Ec2: python connection to mempool websocket to receive JSON data to firehose
-    - Firehose pushes to dashboard (realtime) and s3 (historical)
+    - EC2: Python connection to mempool websocket to receive JSON data to Firehose
+    - Firehose stream: writes to `s3://.../mempool-data/stream/`
+    - Firehose conversions: writes to `s3://.../mempool-data/conversions/`
   - Batched Data:
-    - EventBridge triggers lambda function
-    - Lambda function polls mempool REST for block data
-  - S3 stores all historical data, version controlled
-  - IAM manages access amongst AWS resourecs
+    - EventBridge triggers Lambda function
+    - Lambda polls mempool REST for block data -> `s3://.../batch/`
+  - S3 stores raw data and state
+  - IAM manages access among AWS resources
 - Data Warehousing
   - Snowflake DW
+  - Snowpipe auto-ingests stream + conversions into raw tables
   - dbt for transformations
 - Front end (TBD - Streamlit?)
 
