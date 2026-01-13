@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_mempool_stream_events
+    description: "Staging view for mempool stream events from Firehose."
+    columns:
+      - name: sequence
+        tests:
+          - not_null
+      - name: index
+        tests:
+          - not_null
+
+  - name: stg_block_metadata
+    description: "Staging view for block metadata loaded from batch files."
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: height
+        tests:
+          - not_null

@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    database: MEMPOOL
+    schema: RAW
+    tables:
+      - name: MEMPOOL_STREAM_EVENTS
+      - name: BLOCK_METADATA

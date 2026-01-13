@@ -1,12 +1,15 @@
-# 🥪 The Jaffle Shop 🦘
+# Mempool dbt project
 
-_powered by the dbt Fusion engine_
+This repo keeps Snowflake bootstrap SQL in version control so you can run it
+manually without dbt macros or Snowflake worksheets.
 
-Welcome! This is a sandbox project for exploring the basic functionality of Fusion. It's based on a fictional restaurant called the Jaffle Shop that serves [jaffles](https://en.wikipedia.org/wiki/Pie_iron).
+## Bootstrap Snowflake raw objects
 
-To get started:
-1. Set up your database connection in `~/.dbt/profiles.yml`. If you got here by running `dbt init`, you should already be good to go.
-2. Run `dbt build`. That's it!
+Run the statements in `mempool_project/sql/bootstrap_raw.sql` after your profile
+points at the `MEMPOOL` database.
 
-> [!NOTE]
-> If you're brand-new to dbt, we recommend starting with the [dbt Learn](https://learn.getdbt.com/) platform. It's a free, interactive way to learn dbt, and it's a great way to get started if you're new to the tool.
+Notes:
+- This setup uses a Snowflake storage integration; you must create the AWS IAM
+  role separately and allow the generated Snowflake IAM user to assume it.
+- Ensure S3 event notifications are configured for the `mempool-data/` and
+  `batch/` prefixes so Snowpipe auto-ingest works.
