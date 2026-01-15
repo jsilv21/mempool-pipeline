@@ -45,3 +45,8 @@
 ### Data Changes
 
 - BLOCK_METADATA contains duplicate rows
+
+## Optional ideas (TBD)
+
+- Visualizations: projected block size/fee rate over time, "current block" snapshot KPIs, block arrival cadence vs projected stats, BTC price overlay with mempool congestion.
+- Data model changes: add a "current projected block" snapshot table keyed by latest `sequence`, split `removed` into its own table to avoid null-heavy rows, add a tx-level dimension keyed by `txid` for de-duplication across sequences, store `event_type` metrics separately for added/changed/removed counts.

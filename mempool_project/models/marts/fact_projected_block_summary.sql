@@ -9,7 +9,9 @@ select
   count(*) as tx_count,
   sum(fee) as total_fee,
   sum(vsize) as total_vsize,
-  sum(weight) as total_weight,
-  sum(value) as total_value
+  sum(value) as total_value,
+  avg(fee_rate) as avg_fee_rate,
+  min(unix_timestamp) as first_tx_unix_timestamp,
+  max(unix_timestamp) as last_tx_unix_timestamp
 from txs
 group by sequence
