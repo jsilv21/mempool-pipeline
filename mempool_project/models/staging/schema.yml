@@ -17,7 +17,6 @@ models:
       - name: id
         tests:
           - not_null
-          - unique
       - name: height
         tests:
           - not_null

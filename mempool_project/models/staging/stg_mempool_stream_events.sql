@@ -11,3 +11,4 @@ select
   raw,
   s3_key
 from source
+where sequence is not null
