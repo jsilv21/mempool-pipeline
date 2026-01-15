@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: int_block_metadata_deduped
+    description: "Block metadata with duplicates removed by block id."
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+
+  - name: int_conversions_deduped
+    description: "Conversion rates with duplicates removed by conversion time."
+    columns:
+      - name: conversion_time
+        tests:
+          - not_null
+          - unique
+
+  - name: int_stream_events_deduped
+    description: "Stream events with duplicates removed by sequence and index."
+    columns:
+      - name: sequence
+        tests:
+          - not_null
+      - name: index_pos
+        tests:
+          - not_null

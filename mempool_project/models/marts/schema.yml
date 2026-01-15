@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: fact_block_metadata
+    description: "Block-level metadata enriched with derived metrics."
+    columns:
+      - name: block_id
+        tests:
+          - not_null
+          - unique
+      - name: height
+        tests:
+          - not_null
+      - name: block_time
+        tests:
+          - not_null
+
+  - name: fact_conversions
+    description: "BTC conversion rates over time."
+    columns:
+      - name: conversion_time
+        tests:
+          - not_null
+
+  - name: fact_projected_block_transactions
+    description: "Flattened projected block transactions from stream deltas."
+    columns:
+      - name: sequence
+        tests:
+          - not_null
+      - name: tx_index
+        tests:
+          - not_null
+
+  - name: fact_projected_block_summary
+    description: "Aggregated projected block stats by sequence."
+    columns:
+      - name: sequence
+        tests:
+          - not_null

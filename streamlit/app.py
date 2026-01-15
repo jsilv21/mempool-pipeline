@@ -3,9 +3,11 @@ import os
 from io import BytesIO
 
 import boto3
+import pandas as pd
+import snowflake.connector
 import streamlit as st
 
-DEFAULT_PREFIX = "mempool-data/"
+DEFAULT_PREFIX = "mempool-data/stream/"
 
 
 def get_config():
@@ -16,6 +18,30 @@ def get_config():
         st.error("Missing S3_BUCKET in env or Streamlit secrets.")
         st.stop()
     return bucket, prefix, region
+
+
+def get_snowflake_config():
+    account = os.getenv("SNOWFLAKE_ACCOUNT") or st.secrets.get("SNOWFLAKE_ACCOUNT")
+    user = os.getenv("SNOWFLAKE_USER") or st.secrets.get("SNOWFLAKE_USER")
+    password = os.getenv("SNOWFLAKE_PASSWORD") or st.secrets.get("SNOWFLAKE_PASSWORD")
+    warehouse = os.getenv("SNOWFLAKE_WAREHOUSE") or st.secrets.get("SNOWFLAKE_WAREHOUSE")
+    database = os.getenv("SNOWFLAKE_DATABASE") or st.secrets.get("SNOWFLAKE_DATABASE")
+    schema = os.getenv("SNOWFLAKE_SCHEMA") or st.secrets.get("SNOWFLAKE_SCHEMA")
+    role = os.getenv("SNOWFLAKE_ROLE") or st.secrets.get("SNOWFLAKE_ROLE")
+
+    required = [account, user, password, warehouse, database, schema]
+    if not all(required):
+        return None
+
+    return {
+        "account": account,
+        "user": user,
+        "password": password,
+        "warehouse": warehouse,
+        "database": database,
+        "schema": schema,
+        "role": role,
+    }
 
 
 @st.cache_data(ttl=5)
@@ -44,23 +70,106 @@ def parse_ndjson(blob):
     return items
 
 
+@st.cache_data(ttl=60)
+def fetch_snowflake_df(query, config):
+    ctx = snowflake.connector.connect(
+        account=config["account"],
+        user=config["user"],
+        password=config["password"],
+        warehouse=config["warehouse"],
+        database=config["database"],
+        schema=config["schema"],
+        role=config["role"],
+    )
+    try:
+        return pd.read_sql(query, ctx)
+    finally:
+        ctx.close()
+
+
 def main():
     st.set_page_config(page_title="Mempool Live (S3)", layout="wide")
-    st.title("Mempool Live (S3)")
-    st.caption("Polling S3 every 5 seconds for the latest Firehose object.")
+    st.title("Mempool Live (S3) + Analytics (Snowflake)")
+    st.caption("Realtime stream from S3 plus historical metrics from Snowflake.")
 
-    bucket, prefix, region = get_config()
-    key, body = fetch_latest_object(bucket, prefix, region)
+    live_tab, analytics_tab = st.tabs(["Live Stream", "Analytics"])
 
-    if not key:
-        st.info("No objects found yet. Try again after data arrives.")
-        return
+    with live_tab:
+        bucket, prefix, region = get_config()
+        key, body = fetch_latest_object(bucket, prefix, region)
 
-    st.write(f"Latest object: `{key}`")
-    records = parse_ndjson(body)
-    st.write(f"Records in object: {len(records)}")
-    if records:
-        st.json(records[-10:])
+        if not key:
+            st.info("No objects found yet. Try again after data arrives.")
+            return
+
+        st.write(f"Latest object: `{key}`")
+        records = parse_ndjson(body)
+        st.write(f"Records in object: {len(records)}")
+        if records:
+            st.json(records[-10:])
+
+    with analytics_tab:
+        config = get_snowflake_config()
+        if not config:
+            st.info(
+                "Set SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, "
+                "SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE, SNOWFLAKE_SCHEMA "
+                "(and optional SNOWFLAKE_ROLE)."
+            )
+            return
+
+        db = config["database"]
+        schema = config["schema"]
+
+        blocks_query = f"""
+            select block_time, height, tx_count, size_mb, weight_kwu
+            from {db}.{schema}.FACT_BLOCK_METADATA
+            order by block_time desc
+            limit 200
+        """
+        conversions_query = f"""
+            select conversion_time, usd
+            from {db}.{schema}.FACT_CONVERSIONS
+            order by conversion_time desc
+            limit 200
+        """
+        projected_query = f"""
+            select sequence, last_seen_at, tx_count, total_fee, total_vsize
+            from {db}.{schema}.FACT_PROJECTED_BLOCK_SUMMARY
+            order by last_seen_at desc
+            limit 1
+        """
+
+        blocks_df = fetch_snowflake_df(blocks_query, config)
+        conversions_df = fetch_snowflake_df(conversions_query, config)
+        projected_df = fetch_snowflake_df(projected_query, config)
+
+        if not blocks_df.empty:
+            latest_block = blocks_df.iloc[0]
+            st.metric("Latest Block Height", int(latest_block["HEIGHT"]))
+            st.metric("Latest Block Time", str(latest_block["BLOCK_TIME"]))
+
+            st.subheader("Block Size + Weight (last 200)")
+            blocks_chart = blocks_df.sort_values("BLOCK_TIME")
+            st.line_chart(blocks_chart, x="BLOCK_TIME", y=["SIZE_MB", "WEIGHT_KWU"])
+
+        if not conversions_df.empty:
+            st.subheader("BTC Conversion (USD)")
+            conversions_chart = conversions_df.sort_values("CONVERSION_TIME")
+            st.line_chart(conversions_chart, x="CONVERSION_TIME", y="USD")
+
+        if not projected_df.empty:
+            projected = projected_df.iloc[0]
+            st.subheader("Projected Next Block (Latest Sequence)")
+            st.write(
+                {
+                    "sequence": int(projected["SEQUENCE"]),
+                    "last_seen_at": str(projected["LAST_SEEN_AT"]),
+                    "tx_count": int(projected["TX_COUNT"]),
+                    "total_fee": float(projected["TOTAL_FEE"] or 0),
+                    "total_vsize": float(projected["TOTAL_VSIZE"] or 0),
+                }
+            )
 
 
 if __name__ == "__main__":
