@@ -146,24 +146,57 @@ def main():
             order by last_seen_at desc
             limit 1
         """
+        projected_txs_query = f"""
+            select sequence, fee, vsize, fee_rate
+            from {db}.{schema}.FACT_PROJECTED_BLOCK_TRANSACTIONS
+            where event_type in ('added', 'changed')
+              and fee is not null
+              and vsize is not null
+              and fee_rate is not null
+              and sequence = (
+                select max(sequence)
+                from {db}.{schema}.FACT_PROJECTED_BLOCK_TRANSACTIONS
+              )
+            limit 2000
+        """
 
         blocks_df = fetch_snowflake_df(blocks_query, config)
         conversions_df = fetch_snowflake_df(conversions_query, config)
         projected_df = fetch_snowflake_df(projected_query, config)
+        projected_txs_df = fetch_snowflake_df(projected_txs_query, config)
 
         if not blocks_df.empty:
             latest_block = blocks_df.iloc[0]
             st.metric("Latest Block Height", int(latest_block["HEIGHT"]))
             st.metric("Latest Block Time", str(latest_block["BLOCK_TIME"]))
 
-            st.subheader("Block Size + Weight (last 200)")
-            blocks_chart = blocks_df.sort_values("BLOCK_TIME")
-            st.line_chart(blocks_chart, x="BLOCK_TIME", y=["SIZE_MB", "WEIGHT_KWU"])
-
         if not conversions_df.empty:
             st.subheader("BTC Conversion (USD)")
             conversions_chart = conversions_df.sort_values("CONVERSION_TIME")
             st.line_chart(conversions_chart, x="CONVERSION_TIME", y="USD")
+
+        if not projected_txs_df.empty:
+            st.subheader("Projected Block Fee + Tx Size Distribution")
+            fee_rate_bins = pd.cut(projected_txs_df["FEE_RATE"], bins=10)
+            fee_rate_dist = (
+                fee_rate_bins.value_counts().sort_index().rename_axis("FEE_RATE_BIN")
+            )
+            fee_rate_dist_df = fee_rate_dist.reset_index(name="TX_COUNT")
+            fee_rate_dist_df["FEE_RATE_BIN"] = fee_rate_dist_df["FEE_RATE_BIN"].astype(
+                str
+            )
+            st.bar_chart(fee_rate_dist_df, x="FEE_RATE_BIN", y="TX_COUNT")
+
+            vsize_bins = pd.cut(projected_txs_df["VSIZE"], bins=10)
+            vsize_dist = (
+                vsize_bins.value_counts().sort_index().rename_axis("VSIZE_BIN")
+            )
+            vsize_dist_df = vsize_dist.reset_index(name="TX_COUNT")
+            vsize_dist_df["VSIZE_BIN"] = vsize_dist_df["VSIZE_BIN"].astype(str)
+            st.bar_chart(vsize_dist_df, x="VSIZE_BIN", y="TX_COUNT")
+
+            st.subheader("Tx Size vs. Fee Rate (Latest Sequence)")
+            st.scatter_chart(projected_txs_df, x="VSIZE", y="FEE_RATE")
 
         if not projected_df.empty:
             projected = projected_df.iloc[0]
