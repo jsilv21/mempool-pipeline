@@ -6,7 +6,6 @@ import boto3
 import pandas as pd
 import snowflake.connector
 import streamlit as st
-from cryptography.hazmat.primitives import serialization
 
 DEFAULT_PREFIX = "mempool-data/stream/"
 
@@ -21,47 +20,20 @@ def get_s3_config():
 
 
 def get_snowflake_config():
-    snowflake_secrets = st.secrets.get("snowflake", {})
+    if "snowflake" in st.secrets:
+        return dict(st.secrets["snowflake"])
 
-    account = (
-        os.getenv("SNOWFLAKE_ACCOUNT")
-        or st.secrets.get("SNOWFLAKE_ACCOUNT")
-        or snowflake_secrets.get("account")
+    account = os.getenv("SNOWFLAKE_ACCOUNT") or st.secrets.get("SNOWFLAKE_ACCOUNT")
+    user = os.getenv("SNOWFLAKE_USER") or st.secrets.get("SNOWFLAKE_USER")
+    password = os.getenv("SNOWFLAKE_PASSWORD") or st.secrets.get("SNOWFLAKE_PASSWORD")
+    warehouse = os.getenv("SNOWFLAKE_WAREHOUSE") or st.secrets.get(
+        "SNOWFLAKE_WAREHOUSE"
     )
-    user = (
-        os.getenv("SNOWFLAKE_USER")
-        or st.secrets.get("SNOWFLAKE_USER")
-        or snowflake_secrets.get("user")
-    )
-    password = (
-        os.getenv("SNOWFLAKE_PASSWORD")
-        or st.secrets.get("SNOWFLAKE_PASSWORD")
-        or snowflake_secrets.get("password")
-    )
-    warehouse = (
-        os.getenv("SNOWFLAKE_WAREHOUSE")
-        or st.secrets.get("SNOWFLAKE_WAREHOUSE")
-        or snowflake_secrets.get("warehouse")
-    )
-    database = (
-        os.getenv("SNOWFLAKE_DATABASE")
-        or st.secrets.get("SNOWFLAKE_DATABASE")
-        or snowflake_secrets.get("database")
-    )
-    schema = (
-        os.getenv("SNOWFLAKE_SCHEMA")
-        or st.secrets.get("SNOWFLAKE_SCHEMA")
-        or snowflake_secrets.get("schema")
-    )
-    role = (
-        os.getenv("SNOWFLAKE_ROLE")
-        or st.secrets.get("SNOWFLAKE_ROLE")
-        or snowflake_secrets.get("role")
-    )
-    private_key = (
-        os.getenv("SNOWFLAKE_PRIVATE_KEY")
-        or st.secrets.get("SNOWFLAKE_PRIVATE_KEY")
-        or snowflake_secrets.get("private_key")
+    database = os.getenv("SNOWFLAKE_DATABASE") or st.secrets.get("SNOWFLAKE_DATABASE")
+    schema = os.getenv("SNOWFLAKE_SCHEMA") or st.secrets.get("SNOWFLAKE_SCHEMA")
+    role = os.getenv("SNOWFLAKE_ROLE") or st.secrets.get("SNOWFLAKE_ROLE")
+    private_key = os.getenv("SNOWFLAKE_PRIVATE_KEY") or st.secrets.get(
+        "SNOWFLAKE_PRIVATE_KEY"
     )
 
     required = [account, user, warehouse, database, schema]
@@ -76,7 +48,6 @@ def get_snowflake_config():
         "database": database,
         "schema": schema,
         "role": role,
-        "password": password,
         "private_key": private_key,
     }
 
@@ -109,22 +80,8 @@ def parse_ndjson(blob):
 
 @st.cache_data(ttl=60)
 def fetch_snowflake_df(query, config):
-    private_key = None
-    if config.get("private_key"):
-        private_key = serialization.load_pem_private_key(
-            config["private_key"].encode("utf-8"),
-            password=None,
-        )
-
     ctx = snowflake.connector.connect(
-        account=config["account"],
-        user=config["user"],
-        password=config.get("password"),
-        private_key=private_key,
-        warehouse=config["warehouse"],
-        database=config["database"],
-        schema=config["schema"],
-        role=config["role"],
+        **config,
     )
     try:
         return pd.read_sql(query, ctx)
@@ -163,7 +120,8 @@ def main():
             st.info(
                 "Set SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, "
                 "SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE, SNOWFLAKE_SCHEMA "
-                "(and optional SNOWFLAKE_ROLE / SNOWFLAKE_PRIVATE_KEY)."
+                "(and optional SNOWFLAKE_ROLE / SNOWFLAKE_PRIVATE_KEY), or add a "
+                "[snowflake] section in Streamlit secrets."
             )
             return
 
