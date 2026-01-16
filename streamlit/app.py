@@ -6,30 +6,65 @@ import boto3
 import pandas as pd
 import snowflake.connector
 import streamlit as st
+from cryptography.hazmat.primitives import serialization
 
 DEFAULT_PREFIX = "mempool-data/stream/"
 
 
-def get_config():
+def get_s3_config():
     bucket = os.getenv("S3_BUCKET") or st.secrets.get("S3_BUCKET")
     prefix = os.getenv("S3_PREFIX") or st.secrets.get("S3_PREFIX", DEFAULT_PREFIX)
     region = os.getenv("AWS_REGION") or st.secrets.get("AWS_REGION", "us-east-1")
     if not bucket:
-        st.error("Missing S3_BUCKET in env or Streamlit secrets.")
-        st.stop()
-    return bucket, prefix, region
+        return None
+    return {"bucket": bucket, "prefix": prefix, "region": region}
 
 
 def get_snowflake_config():
-    account = os.getenv("SNOWFLAKE_ACCOUNT") or st.secrets.get("SNOWFLAKE_ACCOUNT")
-    user = os.getenv("SNOWFLAKE_USER") or st.secrets.get("SNOWFLAKE_USER")
-    password = os.getenv("SNOWFLAKE_PASSWORD") or st.secrets.get("SNOWFLAKE_PASSWORD")
-    warehouse = os.getenv("SNOWFLAKE_WAREHOUSE") or st.secrets.get("SNOWFLAKE_WAREHOUSE")
-    database = os.getenv("SNOWFLAKE_DATABASE") or st.secrets.get("SNOWFLAKE_DATABASE")
-    schema = os.getenv("SNOWFLAKE_SCHEMA") or st.secrets.get("SNOWFLAKE_SCHEMA")
-    role = os.getenv("SNOWFLAKE_ROLE") or st.secrets.get("SNOWFLAKE_ROLE")
+    snowflake_secrets = st.secrets.get("snowflake", {})
 
-    required = [account, user, password, warehouse, database, schema]
+    account = (
+        os.getenv("SNOWFLAKE_ACCOUNT")
+        or st.secrets.get("SNOWFLAKE_ACCOUNT")
+        or snowflake_secrets.get("account")
+    )
+    user = (
+        os.getenv("SNOWFLAKE_USER")
+        or st.secrets.get("SNOWFLAKE_USER")
+        or snowflake_secrets.get("user")
+    )
+    password = (
+        os.getenv("SNOWFLAKE_PASSWORD")
+        or st.secrets.get("SNOWFLAKE_PASSWORD")
+        or snowflake_secrets.get("password")
+    )
+    warehouse = (
+        os.getenv("SNOWFLAKE_WAREHOUSE")
+        or st.secrets.get("SNOWFLAKE_WAREHOUSE")
+        or snowflake_secrets.get("warehouse")
+    )
+    database = (
+        os.getenv("SNOWFLAKE_DATABASE")
+        or st.secrets.get("SNOWFLAKE_DATABASE")
+        or snowflake_secrets.get("database")
+    )
+    schema = (
+        os.getenv("SNOWFLAKE_SCHEMA")
+        or st.secrets.get("SNOWFLAKE_SCHEMA")
+        or snowflake_secrets.get("schema")
+    )
+    role = (
+        os.getenv("SNOWFLAKE_ROLE")
+        or st.secrets.get("SNOWFLAKE_ROLE")
+        or snowflake_secrets.get("role")
+    )
+    private_key = (
+        os.getenv("SNOWFLAKE_PRIVATE_KEY")
+        or st.secrets.get("SNOWFLAKE_PRIVATE_KEY")
+        or snowflake_secrets.get("private_key")
+    )
+
+    required = [account, user, warehouse, database, schema]
     if not all(required):
         return None
 
@@ -41,6 +76,8 @@ def get_snowflake_config():
         "database": database,
         "schema": schema,
         "role": role,
+        "password": password,
+        "private_key": private_key,
     }
 
 
@@ -72,10 +109,18 @@ def parse_ndjson(blob):
 
 @st.cache_data(ttl=60)
 def fetch_snowflake_df(query, config):
+    private_key = None
+    if config.get("private_key"):
+        private_key = serialization.load_pem_private_key(
+            config["private_key"].encode("utf-8"),
+            password=None,
+        )
+
     ctx = snowflake.connector.connect(
         account=config["account"],
         user=config["user"],
-        password=config["password"],
+        password=config.get("password"),
+        private_key=private_key,
         warehouse=config["warehouse"],
         database=config["database"],
         schema=config["schema"],
@@ -95,18 +140,22 @@ def main():
     live_tab, analytics_tab = st.tabs(["Live Stream", "Analytics"])
 
     with live_tab:
-        bucket, prefix, region = get_config()
-        key, body = fetch_latest_object(bucket, prefix, region)
+        s3_config = get_s3_config()
+        if not s3_config:
+            st.info("S3 not configured yet. Skipping live stream.")
+        else:
+            key, body = fetch_latest_object(
+                s3_config["bucket"], s3_config["prefix"], s3_config["region"]
+            )
 
-        if not key:
-            st.info("No objects found yet. Try again after data arrives.")
-            return
-
-        st.write(f"Latest object: `{key}`")
-        records = parse_ndjson(body)
-        st.write(f"Records in object: {len(records)}")
-        if records:
-            st.json(records[-10:])
+            if not key:
+                st.info("No objects found yet. Try again after data arrives.")
+            else:
+                st.write(f"Latest object: `{key}`")
+                records = parse_ndjson(body)
+                st.write(f"Records in object: {len(records)}")
+                if records:
+                    st.json(records[-10:])
 
     with analytics_tab:
         config = get_snowflake_config()
@@ -114,7 +163,7 @@ def main():
             st.info(
                 "Set SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, "
                 "SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE, SNOWFLAKE_SCHEMA "
-                "(and optional SNOWFLAKE_ROLE)."
+                "(and optional SNOWFLAKE_ROLE / SNOWFLAKE_PRIVATE_KEY)."
             )
             return
 
