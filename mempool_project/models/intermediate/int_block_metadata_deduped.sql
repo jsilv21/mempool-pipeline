@@ -1,6 +1,15 @@
+{{ config(
+  materialized='incremental',
+  unique_key='id',
+  incremental_strategy='merge'
+) }}
+
 with source as (
   select *
   from {{ ref('stg_block_metadata') }}
+  {% if is_incremental() %}
+    where ingested_at > (select max(ingested_at) from {{ this }})
+  {% endif %}
 )
 
 select

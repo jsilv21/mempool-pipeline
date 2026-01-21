@@ -4,12 +4,6 @@ with source as (
 )
 
 select
-  ingested_at,
-  index_pos,
-  sequence,
-  delta,
-  raw,
-  s3_key
+COUNT(*) as count
 from source
-order by ingested_at desc
-limit 5
+

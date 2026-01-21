@@ -1,6 +1,15 @@
+{{ config(
+  materialized='incremental',
+  unique_key=['sequence', 'index_pos'],
+  incremental_strategy='merge'
+) }}
+
 with source as (
   select *
   from {{ ref('stg_mempool_stream_events') }}
+  {% if is_incremental() %}
+    where ingested_at > (select max(ingested_at) from {{ this }})
+  {% endif %}
 )
 
 select

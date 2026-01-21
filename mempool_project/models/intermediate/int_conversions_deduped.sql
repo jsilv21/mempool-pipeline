@@ -1,6 +1,15 @@
+{{ config(
+  materialized='incremental',
+  unique_key='conversion_time',
+  incremental_strategy='merge'
+) }}
+
 with source as (
   select *
   from {{ ref('stg_mempool_stream_conversions') }}
+  {% if is_incremental() %}
+    where ingested_at > (select max(ingested_at) from {{ this }})
+  {% endif %}
 )
 
 select

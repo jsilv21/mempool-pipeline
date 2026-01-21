@@ -4,6 +4,9 @@ sources:
   - name: raw
     database: MEMPOOL
     schema: RAW
+    config:
+      freshness:
+        warn_after: { count: 24, period: hour }
     tables:
       - name: MEMPOOL_STREAM_EVENTS
       - name: MEMPOOL_CONVERSIONS
