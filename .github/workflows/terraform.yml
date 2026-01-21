@@ -4,10 +4,6 @@ on:
   pull_request:
     paths:
       - terraform/**
-  push:
-    branches: [main]
-    paths:
-      - terraform/**
 
 permissions:
   contents: read
@@ -31,19 +27,3 @@ jobs:
       - run: terraform fmt -check
       - run: terraform validate
       - run: terraform plan -no-color
-
-  apply:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: terraform
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: us-east-1
-      - uses: hashicorp/setup-terraform@v3
-      - run: terraform init
-      - run: terraform apply -auto-approve
