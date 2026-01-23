@@ -1,4 +1,5 @@
 {
   "dbt.dbtIntegration": "fusion",
-  "dbt.enableNewLineagePanel": true
+  "dbt.enableNewLineagePanel": true,
+  "dbt.perspectiveTheme": "Vintage"
 }

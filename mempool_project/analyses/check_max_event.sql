@@ -1,0 +1,1 @@
+select MAX(ingested_at) from {{ref('int_stream_events_deduped')}}
